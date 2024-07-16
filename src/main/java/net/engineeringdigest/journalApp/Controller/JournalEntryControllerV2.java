@@ -2,14 +2,15 @@ package net.engineeringdigest.journalApp.Controller;
 
 
 import net.engineeringdigest.journalApp.Entity.JournalEntry;
+import net.engineeringdigest.journalApp.Entity.UserEntry;
 import net.engineeringdigest.journalApp.Services.JournalEntryService;
+import net.engineeringdigest.journalApp.Services.UserService;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -19,17 +20,24 @@ public class JournalEntryControllerV2 {
     @Autowired
     private JournalEntryService journalEntryService;
 
-    @GetMapping
-    public List<JournalEntry> getAll() {
-        return journalEntryService.getAll();
+    @Autowired
+    private UserService userService;
+
+    @GetMapping("/{userName}")
+    public ResponseEntity<?> getAllJournalEntriesofUsers(@PathVariable String userName) {
+       UserEntry dbUser= userService.findByUserName(userName);
+       List<JournalEntry> all = dbUser.getJournalEntries();
+       if(all != null && !all.isEmpty()){
+           return new ResponseEntity<>(HttpStatus.OK);
+       }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
 
-    @PostMapping
-    public ResponseEntity<JournalEntry> createEntry(@RequestBody JournalEntry journalEntry) {
+    @PostMapping("/{userName}")
+    public ResponseEntity<JournalEntry> createEntry(@RequestBody JournalEntry journalEntry, @PathVariable String userName) {
        try {
-           journalEntry.setDate(LocalDate.now());
-           journalEntryService.saveEntry(journalEntry);
+           journalEntryService.saveEntry(journalEntry,userName);
            return new ResponseEntity<>(HttpStatus.CREATED);
        } catch (Exception e){
            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -48,21 +56,25 @@ public class JournalEntryControllerV2 {
 
     }
 
-    @DeleteMapping("/id/{myid}")
-    public boolean deleteJournalEntryById(@PathVariable ObjectId myid) {
-         journalEntryService.DeleteById(myid);
+    @DeleteMapping("/id/{userName}/{myid}")
+    public boolean deleteJournalEntryById(@PathVariable ObjectId myid, String userName) {
+         UserEntry userEntry = userService.findByUserName(userName);
+         userEntry.getJournalEntries().removeIf(x -> x.getId().equals(myid));
+         userService.saveEntry(userEntry);
+         journalEntryService.DeleteById(myid,userName);
          return true;
     }
 
-    @PutMapping("id/{myid}")
-    public JournalEntry updateJournalEntryById(@PathVariable ObjectId myid, @RequestBody JournalEntry newEntry) {
-     JournalEntry oldEntry = journalEntryService.findById(myid).orElse(null);
-        if(oldEntry != null){
-            oldEntry.setTitle(newEntry.getTitle() != null && !newEntry.getTitle().equals("")? newEntry.getTitle() : oldEntry.getTitle());
-           oldEntry.setContent(newEntry.getContent() != null && !newEntry.getContent().equals("")?newEntry.getContent() : oldEntry.getContent());
-        }
-        journalEntryService.saveEntry(oldEntry);
-        return oldEntry;
-
-    }
+//    @PutMapping("id/{myid}")
+//    public JournalEntry updateJournalEntryById(@PathVariable ObjectId myid, @RequestBody JournalEntry newEntry) {
+////     JournalEntry oldEntry = journalEntryService.findById(myid).orElse(null);
+////        UserEntry dbUser= userService.findByUserName(userName);
+////        if(oldEntry != null){
+////            oldEntry.setTitle(newEntry.getTitle() != null && !newEntry.getTitle().equals("")? newEntry.getTitle() : oldEntry.getTitle());
+////           oldEntry.setContent(newEntry.getContent() != null && !newEntry.getContent().equals("")?newEntry.getContent() : oldEntry.getContent());
+////        }
+////        journalEntryService.saveEntry(oldEntry, dbUser);
+////        return oldEntry;
+//
+//    }
 }
