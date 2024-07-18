@@ -30,6 +30,12 @@ public void saveEntry(UserEntry userEntry){
         userEntry.setRoles(Arrays.asList("User"));
         userRepository.save(userEntry);
     }
+
+    public void  saveAdmin (UserEntry userEntry){
+        userEntry.setPassword(passwordencoder.encode(userEntry.getPassword()));
+        userEntry.setRoles(Arrays.asList("Admin"));
+        userRepository.save(userEntry);
+    }
 public List<UserEntry> getAll(){
     return userRepository.findAll();
 }

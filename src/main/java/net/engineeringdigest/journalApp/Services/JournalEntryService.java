@@ -15,31 +15,48 @@ import java.util.Optional;
 public class JournalEntryService {
 
 
-@Autowired
-private JournalEntryRepository journalEntryRepository;
+    @Autowired
+    private JournalEntryRepository journalEntryRepository;
 
-@Autowired
-private UserService userService;
+    @Autowired
+    private UserService userService;
 
-@Transactional
-public void saveEntry(JournalEntry journalEntry, String userName){
-    UserEntry dbUser= userService.findByUserName(userName);
-    JournalEntry savedEntry =  journalEntryRepository.save(journalEntry);
-     dbUser.getJournalEntries().add(savedEntry);
-     userService.saveEntry(dbUser);
+    @Transactional
+    public void saveEntry(JournalEntry journalEntry, String userName) {
+        UserEntry dbUser = userService.findByUserName(userName);
+        JournalEntry savedEntry = journalEntryRepository.save(journalEntry);
+        dbUser.getJournalEntries().add(savedEntry);
+        userService.saveEntry(dbUser);
+
+    }
+
+    public void saveEntry(JournalEntry journalEntry) {
+        journalEntryRepository.save(journalEntry);
+    }
+
+    public List<JournalEntry> getAll() {
+        return journalEntryRepository.findAll();
+    }
+
+    public Optional<JournalEntry> findById(ObjectId id) {
+        return journalEntryRepository.findById(id);
+    }
+
+    @Transactional
+    public void DeleteById(ObjectId id, String userName) {
+        try {
+            UserEntry user = userService.findByUserName(userName);
+            boolean removed = user.getJournalEntries().removeIf(x -> x.getId().equals(id));
+            if (removed) {
+                userService.saveEntry(user);
+                journalEntryRepository.deleteById(id);
+            }
+        } catch (Exception e) {
+           System.out.println(e);
+           throw  new RuntimeException("An error occured while deleting an entry ",e);
+
+        }
 
 
-}
-public List<JournalEntry> getAll(){
-    return journalEntryRepository.findAll();
-}
-
-public Optional<JournalEntry> findById(ObjectId id){
-    return journalEntryRepository.findById(id);
-}
-
-public void  DeleteById(ObjectId id,String userName){
-    UserEntry user = userService.findByUserName(userName);
-    journalEntryRepository.deleteById(id);
-}
+    }
 }
